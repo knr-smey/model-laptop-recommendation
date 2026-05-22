@@ -2,23 +2,34 @@
 
 ## Project Overview
 
-This project demonstrates a local AI workflow built around a LoRA adapter, a merge script, `llama.cpp`, Ollama, and GGUF conversion.
+This project demonstrates a complete local AI workflow using:
 
-The typical flow is:
+* LoRA adapter fine-tuning
+* Hugging Face Transformers
+* GGUF conversion
+* `llama.cpp`
+* Ollama local inference
 
-1. Start from a base Hugging Face model.
-2. Apply the LoRA adapter stored in `laptop-ai-lora/`.
-3. Run `merge.py` to merge the adapter into the base model weights.
-4. Use `llama.cpp` to convert the merged model into GGUF format.
-5. Create and run a local Ollama model from the generated GGUF file.
+The workflow is designed to:
 
-This repository is intentionally kept lightweight for GitHub. Large generated assets such as merged model outputs, GGUF files, virtual environments, and build folders should stay out of version control.
+1. Load a base Hugging Face model
+2. Apply the trained LoRA adapter
+3. Merge the LoRA weights into the base model
+4. Convert the merged model into GGUF format
+5. Run the final model locally using Ollama
 
-## Project Structure
+This repository is intentionally lightweight and GitHub-friendly. Large generated assets and model weights are excluded from version control.
+
+---
+
+# Project Structure
 
 ```text
 test_script/
 ├── laptop-ai-lora/
+│   ├── adapter_config.json
+│   ├── tokenizer.json
+│   └── ...
 ├── llama.cpp/
 ├── merge.py
 ├── Modelfile
@@ -27,101 +38,284 @@ test_script/
 └── .gitignore
 ```
 
-## Requirements
+---
 
-- Python 3.10+
-- Ollama
-- Git
-- `llama.cpp`
+# Requirements
 
-## Clone Project
+## Software
+
+* Python 3.10+
+* Git
+* Ollama
+* CMake
+* `llama.cpp`
+
+## Recommended Hardware
+
+### Recommended
+
+* NVIDIA GPU with CUDA support
+
+### Minimum
+
+* 16GB RAM
+* Additional swap memory recommended for CPU merge workflow
+
+---
+
+# Download Missing Model File
+
+This repository does NOT include:
+
+```text
+adapter_model.safetensors
+```
+
+because GitHub blocks files larger than 100MB.
+
+Download the file separately and place it inside:
+
+```text
+laptop-ai-lora/
+```
+
+Expected structure:
+
+```text
+laptop-ai-lora/
+├── adapter_model.safetensors
+├── adapter_config.json
+├── tokenizer.json
+└── ...
+```
+
+---
+
+# Clone Project
 
 ```bash
 git clone <repo-url>
 cd test_script
 ```
 
-## Create Virtual Environment
+---
 
-### Ubuntu / Linux / macOS
+# Create Virtual Environment
+
+## Ubuntu / Linux / macOS
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### Windows
+## Windows
 
 ```powershell
 python -m venv venv
 venv\Scripts\activate
 ```
 
-## Install Dependencies
+---
+
+# Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Merge LoRA
+---
 
-This step loads the base model, applies the LoRA adapter from `laptop-ai-lora/`, and saves the merged result into `merged-model/`.
+# Merge LoRA
+
+This step:
+
+* loads the base model
+* applies the LoRA adapter
+* merges weights
+* saves output into:
+
+```text
+merged-model/
+```
+
+Run:
 
 ```bash
 python merge.py
 ```
 
-## Build llama.cpp
+---
 
-If you do not already have `llama.cpp`, clone and build it:
+# Ubuntu Swap Memory Recommendation
+
+For CPU-only systems or low-memory laptops:
+
+```bash
+sudo fallocate -l 16G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+Check:
+
+```bash
+free -h
+```
+
+---
+
+# Build llama.cpp
+
+If you do not already have `llama.cpp`:
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
+```
+
+Install build tools:
+
+## Ubuntu
+
+```bash
+sudo apt install build-essential cmake -y
+```
+
+## Windows
+
+Install:
+
+* Visual Studio Build Tools
+* CMake
+
+Then build:
+
+```bash
 cmake -B build
 cmake --build build --config Release
 ```
 
-### Ubuntu Notes
+---
 
-If `cmake` is missing, install it with your package manager before building.
+# Convert to GGUF
 
-### Windows Notes
+From inside:
 
-Run the build commands in PowerShell or a Developer Command Prompt with CMake installed.
+```text
+llama.cpp/
+```
 
-## Convert to GGUF
-
-After merging, convert the Hugging Face model into GGUF format from inside the `llama.cpp` directory:
+run:
 
 ```bash
 python convert_hf_to_gguf.py ../merged-model --outfile model.gguf --outtype q8_0
 ```
 
-This creates `model.gguf`, which should remain untracked in Git.
+This generates:
 
-## Create Ollama Model
+```text
+model.gguf
+```
 
-Go back to the project root and create a `Modelfile` with:
+Do NOT commit GGUF files to GitHub.
+
+---
+
+# Create Ollama Model
+
+Go back to project root:
+
+```bash
+cd ..
+```
+
+Create:
+
+```text
+Modelfile
+```
+
+Content:
 
 ```text
 FROM ./llama.cpp/model.gguf
 ```
 
-Then build the Ollama model:
+Then create model:
 
 ```bash
 ollama create myai -f Modelfile
 ```
 
-## Run Model
+---
+
+# Run Model
 
 ```bash
 ollama run myai
 ```
 
-## Notes
+---
 
-- `merge.py` currently uses `mistralai/Mistral-7B-Instruct-v0.3` as the base model.
-- Make sure Ollama is installed and running before calling `ollama create` or `ollama run`.
-- Keep `merged-model/`, `*.gguf`, `venv/`, and `llama.cpp/build/` out of Git to keep the repository small and push-friendly.
+# Optional Python Example
+
+Install:
+
+```bash
+pip install ollama
+```
+
+Example:
+
+```python
+import ollama
+
+response = ollama.chat(
+    model='myai',
+    messages=[
+        {'role': 'user', 'content': 'Hello'}
+    ]
+)
+
+print(response['message']['content'])
+```
+
+---
+
+# Notes
+
+* `merge.py` currently uses:
+
+  ```text
+  mistralai/Mistral-7B-Instruct-v0.3
+  ```
+
+* Ollama must be installed and running before:
+
+  ```bash
+  ollama create
+  ollama run
+  ```
+
+* Large files are intentionally excluded:
+
+  * `*.gguf`
+  * `merged-model/`
+  * `venv/`
+  * `llama.cpp/build/`
+  * `adapter_model.safetensors`
+
+* Recommended hosting for large model files:
+
+  * Hugging Face
+  * Google Drive
+  * Mega
+
+* This project supports:
+
+  * Ubuntu
+  * Windows
+  * CPU inference via Ollama
+  * NVIDIA GPU workflows
