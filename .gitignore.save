@@ -1,0 +1,15 @@
+venv/
+merged-model/
+llama.cpp/build/
+*.gguf
+__pycache__/
+laptop-ai-lora/adapter_model.safetensorsvenv/
+merged-model/
+llama.cpp/build/
+*.gguf
+__pycache__/
+**/__pycache__/
+.envgit filter-branch --force --index-filter \
+'git rm --cached --ignore-unmatch laptop-ai-lora/adapter_model.safetensors' \
+--prune-empty --tag-name-filter cat -- --all
+laptop-ai-lora/adapter_model.safetensors

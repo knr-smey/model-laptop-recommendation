@@ -1,0 +1,6 @@
+venv/
+merged-model/
+llama.cpp/build/
+*.gguf
+__pycache__/
+laptop-ai-lora/adapter_model.safetensors
